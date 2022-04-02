@@ -18,4 +18,5 @@ type router struct {
 
 func (r *router) AddRoutes(e *echo.Echo) {
 	e.GET("/auth/urls", r.authHandler.GetAuthURLs())
+	e.GET("/auth/:provider", r.authHandler.HandleRedirect())
 }
