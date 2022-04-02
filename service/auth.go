@@ -32,7 +32,7 @@ type AuthURL struct {
 	AuthURL  interface{} `json:"url"`
 }
 
-func (service *authService) GetAuthURLs() []AuthURL {
+func (*authService) GetAuthURLs() []AuthURL {
 	c := config.AuthConfig
 
 	urls := []AuthURL{}
@@ -94,7 +94,7 @@ func (service *authService) IsNewUser(user *domain.User) (bool, error) {
 	return true, nil
 }
 
-func (service *authService) fetchGithubUser(ctx context.Context, token *oauth2.Token) (*domain.User, error) {
+func (*authService) fetchGithubUser(ctx context.Context, token *oauth2.Token) (*domain.User, error) {
 	request, err := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 	if err != nil {
 		return nil, err
