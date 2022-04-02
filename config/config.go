@@ -24,5 +24,4 @@ func LoadAppConfig() error {
 	}
 
 	return nil
-
 }
