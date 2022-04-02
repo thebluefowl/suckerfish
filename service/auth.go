@@ -62,7 +62,6 @@ func (service *authService) Authenticate(ctx context.Context, request *FetchToke
 		if err != nil {
 			return nil, err
 		}
-
 	}
 	isNewUser, err := service.IsNewUser(user)
 	if err != nil {
@@ -80,7 +79,6 @@ func (service *authService) Authenticate(ctx context.Context, request *FetchToke
 		return nil, err
 	}
 	return user, nil
-
 }
 
 func (service *authService) IsNewUser(user *domain.User) (bool, error) {
