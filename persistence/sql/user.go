@@ -78,8 +78,5 @@ func (repository *userRepository) GetByEmail(email string) (*domain.User, error)
 
 func (repository *userRepository) Create(user *domain.User) error {
 	dbUser := getDBUser(user)
-	if err := repository.client.DB.Create(dbUser).Error; err != nil {
-		return err
-	}
-	return nil
+	return repository.client.DB.Create(dbUser).Error
 }
