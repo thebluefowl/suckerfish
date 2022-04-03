@@ -5,24 +5,28 @@ import (
 	"github.com/thebluefowl/suckerfish/db"
 )
 
-var AppConfig *Config
-
 type Config struct {
-	Port     string       `mapstructure:"port"`
+	// Port is the HTTP web server port
+	Port string `mapstructure:"port"`
+	// SigningKey is used to sign the JWT token
+	SigningKey string `mapstructure:"signing_key"`
+
+	// Postgres config
 	Postgres *db.PGConfig `mapstructure:"postgres"`
 }
 
-func LoadAppConfig() error {
+func LoadAppConfig() (*Config, error) {
 	viper.AddConfigPath("./")
 	viper.SetConfigName("config")
 	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-	AppConfig = &Config{}
-	if err := viper.Unmarshal(AppConfig); err != nil {
-		return nil
+		return nil, err
 	}
 
-	return nil
+	appConfig := &Config{}
+	if err := viper.Unmarshal(appConfig); err != nil {
+		return nil, err
+	}
+
+	return appConfig, nil
 
 }

@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -42,11 +43,15 @@ func (handler *authHandler) HandleRedirect() echo.HandlerFunc {
 		if err := c.Bind(request); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{"error": "invalid request"})
 		}
-		user, err := handler.authService.Authenticate(c.Request().Context(), request)
+		user, err := handler.authService.AuthenticateFromProvider(c.Request().Context(), request)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{"error": "failed to authenticate"})
 		}
-		_ = user
-		return c.JSON(http.StatusOK, "")
+		token, err := handler.authService.GenerateJWT(user)
+		if err != nil {
+			fmt.Println(err)
+			return c.JSON(http.StatusForbidden, map[string]interface{}{"error": "failed to complete login"})
+		}
+		return c.JSON(http.StatusOK, token)
 	}
 }

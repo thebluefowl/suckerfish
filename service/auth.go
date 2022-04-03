@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/segmentio/ksuid"
 	"github.com/thebluefowl/suckerfish/config"
 	"github.com/thebluefowl/suckerfish/domain"
@@ -16,15 +17,22 @@ import (
 
 type AuthService interface {
 	GetAuthURLs() []AuthURL
-	Authenticate(context.Context, *FetchTokenRequest) (*domain.User, error)
+	GenerateJWT(*domain.User) (string, error)
+	AuthenticateFromProvider(context.Context, *FetchTokenRequest) (*domain.User, error)
 }
 
-func NewAuthService(userRepository domain.UserRepository) AuthService {
-	return &authService{userRepository: userRepository}
+func NewAuthService(userRepository domain.UserRepository, authConfig *config.Auth, appConfig *config.Config) AuthService {
+	return &authService{
+		userRepository: userRepository,
+		authConfig:     authConfig,
+		appConfig:      appConfig,
+	}
 }
 
 type authService struct {
 	userRepository domain.UserRepository
+	authConfig     *config.Auth
+	appConfig      *config.Config
 }
 
 type AuthURL struct {
@@ -32,13 +40,11 @@ type AuthURL struct {
 	AuthURL  interface{} `json:"url"`
 }
 
-func (*authService) GetAuthURLs() []AuthURL {
-	c := config.AuthConfig
-
+func (service *authService) GetAuthURLs() []AuthURL {
 	urls := []AuthURL{}
-	if c.Github != nil {
+	if service.authConfig.Github != nil {
 		state := ksuid.New().String()
-		urls = append(urls, AuthURL{domain.ProviderGithub, c.Github.AuthCodeURL(state)})
+		urls = append(urls, AuthURL{domain.ProviderGithub, service.authConfig.Github.AuthCodeURL(state)})
 	}
 	return urls
 }
@@ -49,12 +55,11 @@ type FetchTokenRequest struct {
 	State    string `query:"state"`
 }
 
-func (service *authService) Authenticate(ctx context.Context, request *FetchTokenRequest) (*domain.User, error) {
-	c := config.AuthConfig
+func (service *authService) AuthenticateFromProvider(ctx context.Context, request *FetchTokenRequest) (*domain.User, error) {
 	user := &domain.User{}
 	switch request.Provider {
 	case domain.ProviderGithub:
-		token, err := c.Github.Exchange(ctx, request.Code)
+		token, err := service.authConfig.Github.Exchange(ctx, request.Code)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +85,69 @@ func (service *authService) Authenticate(ctx context.Context, request *FetchToke
 		return nil, err
 	}
 	return user, nil
+}
 
+type CustomClaims struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url"`
+	Email     string `json:"email"`
+	Provider  string `json:"provider"`
+	Company   string `json:"company"`
+	Location  string `json:"location"`
+	IsStaff   bool   `json:"is_staff"`
+	jwt.StandardClaims
+}
+
+func (service *authService) GenerateJWT(user *domain.User) (string, error) {
+	signingKey := []byte(service.appConfig.SigningKey)
+	claims := CustomClaims{
+		user.ID,
+		user.Name,
+		user.AvatarURL,
+		user.Email,
+		user.Provider,
+		user.Company,
+		user.Location,
+		user.IsStaff,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+			IssuedAt:  time.Now().Unix(),
+			NotBefore: time.Now().Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	tokenString, err := token.SignedString(signingKey)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+func (service *authService) Authenticate(tokenString string) (*domain.User, error) {
+	signingKey := []byte(service.appConfig.SigningKey)
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return signingKey, nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return &domain.User{
+			ID:        claims["id"].(string),
+			Name:      claims["name"].(string),
+			AvatarURL: claims["avatar_url"].(string),
+			Email:     claims["email"].(string),
+			Provider:  claims["provider"].(string),
+			Company:   claims["company"].(string),
+			Location:  claims["location"].(string),
+			IsStaff:   claims["is_staff"].(bool),
+		}, nil
+	} else {
+		return nil, err
+	}
 }
 
 func (service *authService) IsNewUser(user *domain.User) (bool, error) {

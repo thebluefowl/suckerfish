@@ -6,13 +6,11 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-var AuthConfig *Auth
-
 type Auth struct {
 	Github *oauth2.Config
 }
 
-func LoadAuthConfig() error {
+func LoadAuthConfig() (*Auth, error) {
 	type config struct {
 		Github *struct {
 			ClientID     string   `mapstructure:"client_id"`
@@ -24,18 +22,18 @@ func LoadAuthConfig() error {
 	viper.SetConfigName("auth")
 	err := viper.ReadInConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c := &config{}
 	err = viper.Unmarshal(c)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	AuthConfig = &Auth{}
+	authConfig := &Auth{}
 
 	if c.Github != nil {
-		AuthConfig.Github = &oauth2.Config{
+		authConfig.Github = &oauth2.Config{
 			ClientID:     c.Github.ClientID,
 			ClientSecret: c.Github.ClientSecret,
 			Scopes:       c.Github.Scopes,
@@ -44,5 +42,5 @@ func LoadAuthConfig() error {
 		}
 	}
 
-	return nil
+	return authConfig, nil
 }

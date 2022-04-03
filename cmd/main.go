@@ -16,15 +16,17 @@ func main() {
 	migrate := flag.Bool("migrate", false, "run migration")
 	flag.Parse()
 
-	if err := config.LoadAppConfig(); err != nil {
+	appConfig, err := config.LoadAppConfig()
+	if err != nil {
 		panic(err)
 	}
 
-	if err := config.LoadAuthConfig(); err != nil {
+	authConfig, err := config.LoadAuthConfig()
+	if err != nil {
 		panic(err)
 	}
 
-	dbClient, err := db.GetPGClient(config.AppConfig.Postgres)
+	dbClient, err := db.GetPGClient(appConfig.Postgres)
 	if err != nil {
 		panic(err)
 	}
@@ -32,19 +34,19 @@ func main() {
 		Migrate(dbClient)
 		return
 	}
-	StartHTTPServer(dbClient)
+	StartHTTPServer(appConfig, authConfig, dbClient)
 }
 
-func StartHTTPServer(dbClient *db.PGClient) error {
+func StartHTTPServer(appConfig *config.Config, authConfig *config.Auth, dbClient *db.PGClient) error {
 	userRepository := sql.NewUserRepository(dbClient)
-	authService := service.NewAuthService(userRepository)
+	authService := service.NewAuthService(userRepository, authConfig, appConfig)
 	authHandler := rest.NewAuthHandler(authService)
 
 	router := rest.NewRouter(authHandler)
 
 	e := echo.New()
 	router.AddRoutes(e)
-	return e.Start(fmt.Sprintf(":%s", config.AppConfig.Port))
+	return e.Start(fmt.Sprintf(":%s", appConfig.Port))
 }
 
 func Migrate(client *db.PGClient) {

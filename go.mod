@@ -3,6 +3,7 @@ module github.com/thebluefowl/suckerfish
 go 1.16
 
 require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/labstack/echo/v4 v4.7.2 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
