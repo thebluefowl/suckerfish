@@ -28,7 +28,7 @@ func (handler *authHandler) GetAuthURLs() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		urls := handler.authService.GetAuthURLs()
 
-		//json.Marshal automatical escapes non utf-8 characters.  Hand writing this to ensure URLs stay unescaped.
+		// json.Marshal automatical escapes non utf-8 characters.  Hand writing this to ensure URLs stay unescaped.
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		c.Response().WriteHeader(http.StatusOK)
 		encoder := json.NewEncoder(c.Response())

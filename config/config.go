@@ -28,5 +28,4 @@ func LoadAppConfig() (*Config, error) {
 	}
 
 	return appConfig, nil
-
 }
