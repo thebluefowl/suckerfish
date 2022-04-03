@@ -67,7 +67,6 @@ func (service *authService) AuthenticateFromProvider(ctx context.Context, reques
 		if err != nil {
 			return nil, err
 		}
-
 	}
 	isNewUser, err := service.IsNewUser(user)
 	if err != nil {
