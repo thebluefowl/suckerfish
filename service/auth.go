@@ -57,6 +57,8 @@ type FetchTokenRequest struct {
 
 func (service *authService) AuthenticateFromProvider(ctx context.Context, request *FetchTokenRequest) (*domain.User, error) {
 	user := &domain.User{}
+
+	// skipcq: CRT-A0014
 	switch request.Provider {
 	case domain.ProviderGithub:
 		token, err := service.authConfig.Github.Exchange(ctx, request.Code)
