@@ -160,7 +160,7 @@ func (service *authService) IsNewUser(user *domain.User) (bool, error) {
 	return true, nil
 }
 
-func (*authService) fetchGithubUser(ctx context.Context, token *oauth2.Token) (*domain.User, error) {
+func (*authService) fetchGithubUser(_ context.Context, token *oauth2.Token) (*domain.User, error) {
 	request, err := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 	if err != nil {
 		return nil, err
